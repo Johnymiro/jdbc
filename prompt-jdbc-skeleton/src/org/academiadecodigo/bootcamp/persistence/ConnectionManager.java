@@ -10,13 +10,12 @@ public class ConnectionManager {
     private java.sql.Connection connection = null;
     private String dbURL = "jdbc:mysql://127.0.0.1:3306/jdbc";
 
-    public Connection getConnection(String url, String root, String password){
+    public Connection getConnection(){
 
         try{
             if (connection == null) {
-                connection = DriverManager.getConnection(url, root, password);
+                connection = DriverManager.getConnection(dbURL, "Johny", "");
             }
-
 
             }
             catch (SQLException e){

@@ -1,10 +1,11 @@
 package org.academiadecodigo.bootcamp.service;
 
-import org.academiadecodigo.bootcamp.controller.UserListController;
+
 import org.academiadecodigo.bootcamp.model.User;
 import org.academiadecodigo.bootcamp.persistence.ConnectionManager;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -12,19 +13,14 @@ public class JdbcUserService implements UserService {
 
     private Connection dbConnection;
     private ConnectionManager connectionManager;
-    private User user;
-    private String dbURL = "jdbc:mysql://127.0.0.1:3306/jdbc";
-    private String root = "root";
-    private String password = "";
 
 
     public JdbcUserService(ConnectionManager connectionManager) {
 
         this.connectionManager = connectionManager;
-        this.dbConnection = connectionManager.getConnection(dbURL, root, password);
+        this.dbConnection = connectionManager.getConnection();
 
     }
-
 
 
     @Override
@@ -43,7 +39,7 @@ public class JdbcUserService implements UserService {
             statement.setString(1, username);
             statement.setString(2, password);
 
-            resultSet = statement.executeQuery(query);
+            resultSet = statement.executeQuery();
 
             result = resultSet.next();
 
@@ -59,12 +55,10 @@ public class JdbcUserService implements UserService {
     @Override
     public void add(User user) {
 
-        String query = "INSERT INTO users (username, password, email, firstname, lastname, phone)"+
-                "values( ?, ?, ?, ? , ?, ? );";
-        PreparedStatement statement = null;
 
         try {
-            statement = dbConnection.prepareStatement(query);
+            String query = "INSERT INTO users (username, password, email, firstname, lastname, phone) values( ?, ?, ?, ?, ?, ?);";
+            PreparedStatement statement = dbConnection.prepareStatement(query);
 
             statement.setString(1, user.getUsername());
             statement.setString(2, user.getPassword());
@@ -73,25 +67,18 @@ public class JdbcUserService implements UserService {
             statement.setString(5, user.getLastName());
             statement.setString(6, user.getPhone());
 
-            statement.executeQuery(query);
-
+            statement.executeUpdate();
         }
         catch (SQLException e){
             e.getSQLState();
         }
-        finally {
-           closeStatement(statement);
-        }
     }
-
 
     @Override
     public User findByName(String username) {
 
         String query = "SELECT * FROM users WHERE username=?;";
-
-
-
+        User user = null;
 
         try {
 
@@ -102,7 +89,7 @@ public class JdbcUserService implements UserService {
 
 
             // execute the query
-            ResultSet resultSet = statement.executeQuery(query);
+            ResultSet resultSet = statement.executeQuery();
 
             // user exists
             if (resultSet.next()) {
@@ -124,30 +111,48 @@ public class JdbcUserService implements UserService {
     }
 
 
-
-
-
     @Override
     public List<User> findAll() {
-        return null;
+
+        String query = "select * from users;";
+        List<User> userList = new ArrayList<>();
+        try {
+            PreparedStatement preparedStatement = dbConnection.prepareStatement(query);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            while(resultSet.next()){
+                String username = resultSet.getString("username");
+                String password= resultSet.getString("password");
+                String email= resultSet.getString("email");
+                String firstname = resultSet.getString("firstname");
+                String lastname= resultSet.getString("lastname");
+                String  phone = resultSet.getString("phone");
+
+                userList.add(new User(username, email, password, firstname, lastname, phone));
+            }
+        }
+        catch (SQLException e){
+            e.getSQLState();
+            System.out.println("In find all");
+        }
+        return userList;
     }
 
     @Override
     public int count() {
 
         int result = 0;
-        PreparedStatement statement = null;
+        PreparedStatement statement;
 
         try {
 
             // create a query
             String query = "SELECT COUNT(*) FROM users";
 
-            statement = makePreparedStatement(query);
-
+            statement = dbConnection.prepareStatement(query);
 
             // execute the query
-            ResultSet resultSet = statement.executeQuery(query);
+            ResultSet resultSet = statement.executeQuery();
 
             // get the results
             if (resultSet.next()) {
@@ -156,10 +161,6 @@ public class JdbcUserService implements UserService {
         } catch (SQLException e) {
             e.getSQLState();
         }
-        finally {
-            closeStatement(statement);
-        }
-
         return result;
     }
 
@@ -179,15 +180,6 @@ public class JdbcUserService implements UserService {
         return null;
     }
 
-
-    private void closeStatement(PreparedStatement statement){
-        try {
-            statement.close();
-        }catch (SQLException e){
-            System.out.println("Error while closing state");
-            e.getSQLState();
-        }
-    }
 
 
 }
